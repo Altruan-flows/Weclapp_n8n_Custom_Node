@@ -10,7 +10,7 @@
 #   1. Log in to npmjs.com and open your package's settings.
 #   2. Under "Publish access" → "Trusted Publishers", click "Add a publisher".
 #   3. Select GitHub Actions and fill in:
-#        Repository owner: Mhd-Bashi
+#        Repository owner: Altruan-flows
 #        Repository name:  Weclapp_n8n_Custom_Node
 #        Workflow name:    publish.yml
 #        Environment:      (leave blank)

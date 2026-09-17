@@ -12,10 +12,10 @@
     "name": "Muhammad Otah Bashi",
     "email": "muhammad.otahbashi@altruan.de"
   },
-  "homepage": "https://github.com/Mhd-Bashi/Weclapp_n8n_Custom_Node#readme",
+  "homepage": "https://github.com/Altruan-flows/Weclapp_n8n_Custom_Node#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Mhd-Bashi/Weclapp_n8n_Custom_Node.git"
+    "url": "git+https://github.com/Altruan-flows/Weclapp_n8n_Custom_Node.git"
   },
   "license": "MIT",
   "scripts": {
