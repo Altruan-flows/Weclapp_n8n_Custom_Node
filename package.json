@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-weclapp",
-  "version": "0.2.11",
+  "version": "0.2.12",
   "description": "n8n community node for the Weclapp ERP/CRM platform",
   "keywords": [
     "n8n-community-node-package",
