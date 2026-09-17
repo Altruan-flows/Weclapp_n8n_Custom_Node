@@ -86,10 +86,16 @@ Returns a list of records, with optional filtering, sorting, and pagination.
 
 ##### Including referenced entities
 
-Weclapp can return referenced records in the same request. Add [`includeReferencedEntities`](https://www.weclapp.com/api/#overview--getting-started) to the **Custom Query** field with a comma-separated list of reference properties (`unitId`, `purchaseOrders`, …). A trailing `.id` / `.ids` is stripped (`purchaseOrders.id` → `purchaseOrders`).
+Weclapp can return referenced records in the same request. Add [`includeReferencedEntities`](https://www.weclapp.com/api/#overview--getting-started) to the **Custom Query** field with a comma-separated list of **reference property paths**: `*Id` fields (`unitId`) or collection PK paths (`purchaseOrders.id`). Do not send the collection name alone (`purchaseOrders`) — Weclapp rejects that as an invalid reference property path.
 
 ```
 includeReferencedEntities=unitId,articleCategoryId
+```
+
+Collection example:
+
+```
+includeReferencedEntities=purchaseOrders.id
 ```
 
 Weclapp returns a single, de-duplicated `referencedEntities` pool shared across the whole result set — it is **not** aligned to individual records. The node resolves each record against that pool and does not attach the pool as a sidecar:
@@ -116,7 +122,7 @@ If **properties** is set, the node adds any missing include fields and `entity:i
 **Example — incoming goods `onlyId` collection:** Custom Query
 
 ```
-status-eq=INCOMING_SHIPPED&purchaseOrders.purchaseOrderNumber-like=P%&includeReferencedEntities=purchaseOrders&properties=id,incomingGoodsNumber,purchaseOrders,purchaseOrder:purchaseOrderNumber
+status-eq=INCOMING_SHIPPED&purchaseOrders.purchaseOrderNumber-like=P%&includeReferencedEntities=purchaseOrders.id&properties=id,incomingGoodsNumber,purchaseOrders,purchaseOrder:purchaseOrderNumber
 ```
 
 ```json

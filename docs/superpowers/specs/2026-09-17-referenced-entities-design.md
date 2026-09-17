@@ -44,14 +44,14 @@ Runs after `parseCustomQuery`, before the HTTP call. Other filters are unchanged
 ### `includeReferencedEntities`
 
 - Split on commas, trim.
-- If a token ends with `.id` or `.ids`, strip that suffix (`purchaseOrders.id` → `purchaseOrders`).
+- Leave include tokens unchanged. Weclapp requires a reference **property path** (`unitId` or `purchaseOrders.id`). Sending `purchaseOrders` alone is rejected (`invalid reference property path`).
 - Do not add include tokens the user did not write.
 - Rejoin and send once.
 
 ### `properties` (only if that param is already present)
 
 - Keep every token the user wrote.
-- For each rewritten include field, add it if missing so the record still has stubs / `*Id`s to expand.
+- For each include token, add the **source field** if missing (`purchaseOrders.id` → `purchaseOrders`, `unitId` → `unitId`) so the record still has stubs / `*Id`s to expand.
 - For each `entity:prop` token, add `entity:id` if missing.
 - If `properties` is absent, add nothing (Weclapp already returns full objects).
 
@@ -67,7 +67,7 @@ Sent to Weclapp:
 status-eq=INCOMING_SHIPPED
 incomingGoodsType-eq=STANDARD
 purchaseOrders.purchaseOrderNumber-like=P%
-includeReferencedEntities=purchaseOrders
+includeReferencedEntities=purchaseOrders.id
 properties=id,incomingGoodsNumber,status,incomingGoodsType,purchaseOrders,purchaseOrder:purchaseOrderNumber,purchaseOrder:id
 ```
 
@@ -95,7 +95,7 @@ Unit-test the two helpers (not private methods of `Weclapp`).
 
 Query rewrite:
 
-- `purchaseOrders.id` → `purchaseOrders`; `unitId` unchanged.
+- `purchaseOrders.id` is sent as-is; `unitId` unchanged. `properties` still gets `purchaseOrders` (not `purchaseOrders.id`).
 - `properties` with `purchaseOrder:purchaseOrderNumber` gains `purchaseOrder:id` and keeps `purchaseOrders`.
 - Filters such as `purchaseOrders.purchaseOrderNumber-like=P%` are not rewritten.
 - No `properties` param → no properties added.
