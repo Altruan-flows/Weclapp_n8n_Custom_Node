@@ -55,6 +55,11 @@ import {
 	userCreateUpdateFields,
 	variantArticleCreateUpdateFields,
 } from './descriptions/remainingEntities';
+import {
+	buildReferenceIndex,
+	normalizeReferencedEntityQuery,
+	resolveReferencedEntities,
+} from './referencedEntities';
 import * as loadOptionsMethods from './methods/loadOptions';
 import {
 	buildWeclappCustomAttributes,
@@ -103,50 +108,6 @@ function parseCustomQuery(raw: string): QueryParamPairs {
 		if (key) pairs.push([key, value]);
 	}
 	return pairs;
-}
-
-/**
- * weclapp's `referencedEntities` is a de-duplicated lookup pool keyed by entity
- * type (e.g. `shippingCarrier`), shared across the whole result set rather than
- * aligned to individual records. This builds an `id -> entity` map per type so
- * each record's foreign keys can be resolved in O(1).
- */
-function buildReferenceIndex(pool: IDataObject): Map<string, Map<unknown, IDataObject>> {
-	const index = new Map<string, Map<unknown, IDataObject>>();
-	for (const [entityName, entities] of Object.entries(pool)) {
-		if (!Array.isArray(entities)) continue;
-		const byId = new Map<unknown, IDataObject>();
-		for (const entity of entities as IDataObject[]) {
-			if (entity && entity.id !== undefined) byId.set(entity.id, entity);
-		}
-		index.set(entityName, byId);
-	}
-	return index;
-}
-
-/**
- * Resolves a record's foreign keys against the referenced-entity pool so each
- * record carries only its own references. A field named `<type>Id` links to a
- * single entity in the `<type>` pool; a field named `<type>Ids` links to many.
- * Matched entities are attached inline under `<type>`; unmatched IDs are left
- * untouched.
- */
-function resolveReferencedEntities(
-	record: IDataObject,
-	index: Map<string, Map<unknown, IDataObject>>,
-): IDataObject {
-	const resolved: IDataObject = { ...record };
-	for (const [field, value] of Object.entries(record)) {
-		if (field.endsWith('Ids') && Array.isArray(value)) {
-			const byId = index.get(field.slice(0, -3));
-			if (byId) resolved[field.slice(0, -3)] = value.map((id) => byId.get(id) ?? id);
-		} else if (field.endsWith('Id') && (typeof value === 'string' || typeof value === 'number')) {
-			const byId = index.get(field.slice(0, -2));
-			const match = byId?.get(value);
-			if (match) resolved[field.slice(0, -2)] = match;
-		}
-	}
-	return resolved;
 }
 
 export class Weclapp implements INodeType {
@@ -255,6 +216,9 @@ export class Weclapp implements INodeType {
 					const pairs: QueryParamPairs = [];
 					if (sort) pairs.push(['sort', sort]);
 					if (customQuery) pairs.push(...parseCustomQuery(customQuery));
+					const normalized = normalizeReferencedEntityQuery(pairs);
+					pairs.length = 0;
+					pairs.push(...normalized);
 
 					// comment and document require entityName + entityId as search params
 					if (resource === 'comment' || resource === 'document') {

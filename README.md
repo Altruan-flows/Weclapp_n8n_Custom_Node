@@ -86,17 +86,23 @@ Returns a list of records, with optional filtering, sorting, and pagination.
 
 ##### Including referenced entities
 
-Weclapp can return referenced records (e.g. the `unit` behind an article's `unitId`) in the same request. Add [`includeReferencedEntities`](https://www.weclapp.com/api/#overview--getting-started) to the **Custom Query** field with a comma-separated list of reference properties:
+Weclapp can return referenced records in the same request. Add [`includeReferencedEntities`](https://www.weclapp.com/api/#overview--getting-started) to the **Custom Query** field with a comma-separated list of reference properties (`unitId`, `purchaseOrders`, …). A trailing `.id` / `.ids` is stripped (`purchaseOrders.id` → `purchaseOrders`).
 
 ```
 includeReferencedEntities=unitId,articleCategoryId
 ```
 
-Weclapp returns a single, de-duplicated `referencedEntities` pool shared across the whole result set — it is **not** aligned to individual records. Rather than attaching that whole pool to every item, the node **resolves each record's foreign keys** against the pool and attaches only the matching entity inline: a field named `<type>Id` is resolved to a single object under `<type>`, and a field named `<type>Ids` to an array under `<type>`. This works for any reference whose base name matches a pool key, so each item carries just its own references. When **Return All** is enabled, the pool is merged across pages and de-duplicated by `id` before resolution.
+Weclapp returns a single, de-duplicated `referencedEntities` pool shared across the whole result set — it is **not** aligned to individual records. The node resolves each record against that pool and does not attach the pool as a sidecar:
 
-> **Note:** matching is done by `id`. If you narrow the response with `properties` and use the `entity:prop` selection syntax, include the entity's `id` too (e.g. `unit:id,unit:name`), otherwise the pooled entities have no `id` to match against and nothing will be resolved.
+- A field named `<type>Id` is resolved to a sibling object under `<type>` (`unitId` → `unit`).
+- A field named `<type>Ids` is resolved to a sibling array under `<type>`.
+- An array of `{ "id" }` stubs (e.g. `purchaseOrders`) is **expanded in place** from the matching pool (`purchaseOrder`). Nested rows that already have other fields (e.g. `incomingGoodsItems`) are not replaced.
 
-**Example output** for `article` with Custom Query `includeReferencedEntities=unitId`:
+When **Return All** is enabled, the pool is merged across pages and de-duplicated by `id` before resolution.
+
+If **properties** is set, the node adds any missing include fields and `entity:id` selectors so pooled records can be matched. You do not need to add `purchaseOrder:id` by hand.
+
+**Example — article `*Id`:** Custom Query `includeReferencedEntities=unitId`
 
 ```json
 {
@@ -104,6 +110,20 @@ Weclapp returns a single, de-duplicated `referencedEntities` pool shared across 
   "articleNumber": "EPM242J",
   "unitId": "2770",
   "unit": { "id": "2770", "name": "Stk." }
+}
+```
+
+**Example — incoming goods `onlyId` collection:** Custom Query
+
+```
+status-eq=INCOMING_SHIPPED&purchaseOrders.purchaseOrderNumber-like=P%&includeReferencedEntities=purchaseOrders&properties=id,incomingGoodsNumber,purchaseOrders,purchaseOrder:purchaseOrderNumber
+```
+
+```json
+{
+  "id": "ig1",
+  "incomingGoodsNumber": "WE-1",
+  "purchaseOrders": [{ "id": "po1", "purchaseOrderNumber": "P-100" }]
 }
 ```
 

@@ -164,3 +164,44 @@ describe('Weclapp node - dryRun on create and update', () => {
 		expect(opts.qs).toEqual({ ignoreMissingProperties: true, dryRun: true });
 	});
 });
+
+describe('Weclapp node - search referenced entities', () => {
+	it('rewrites includeReferencedEntities and expands purchaseOrders in place', async () => {
+		const { ctx, mockHttpRequest } = makeExecuteContext(
+			{
+				resource: 'incomingGoods',
+				operation: 'search',
+				customQuery:
+					'status-eq=INCOMING_SHIPPED&incomingGoodsType-eq=STANDARD&purchaseOrders.purchaseOrderNumber-like=P%&includeReferencedEntities=purchaseOrders.id&properties=id,incomingGoodsNumber,status,incomingGoodsType,purchaseOrders,purchaseOrder:purchaseOrderNumber',
+				returnAll: false,
+				page: 1,
+				pageSize: 100,
+				sort: '-lastModifiedDate',
+			},
+			{
+				statusCode: 200,
+				body: {
+					result: [
+						{
+							id: 'ig1',
+							incomingGoodsNumber: 'WE-1',
+							status: 'INCOMING_SHIPPED',
+							incomingGoodsType: 'STANDARD',
+							purchaseOrders: [{ id: 'po1' }],
+						},
+					],
+					referencedEntities: {
+						purchaseOrder: [{ id: 'po1', purchaseOrderNumber: 'P-100' }],
+					},
+				},
+			},
+		);
+		const out = await run(ctx);
+		const url = (mockHttpRequest.mock.calls[0][1] as { url: string }).url;
+		expect(url).toContain('includeReferencedEntities=purchaseOrders');
+		expect(url).not.toContain('purchaseOrders.id');
+		expect(url).toContain('purchaseOrder%3Aid');
+		expect(url).toContain('purchaseOrders.purchaseOrderNumber-like=P%25');
+		expect(out[0].json.purchaseOrders).toEqual([{ id: 'po1', purchaseOrderNumber: 'P-100' }]);
+	});
+});
