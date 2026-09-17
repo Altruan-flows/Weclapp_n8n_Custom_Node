@@ -166,7 +166,7 @@ describe('Weclapp node - dryRun on create and update', () => {
 });
 
 describe('Weclapp node - search referenced entities', () => {
-	it('rewrites includeReferencedEntities and expands purchaseOrders in place', async () => {
+	it('keeps purchaseOrders.id on includeReferencedEntities and expands purchaseOrders in place', async () => {
 		const { ctx, mockHttpRequest } = makeExecuteContext(
 			{
 				resource: 'incomingGoods',
@@ -198,8 +198,7 @@ describe('Weclapp node - search referenced entities', () => {
 		);
 		const out = await run(ctx);
 		const url = (mockHttpRequest.mock.calls[0][1] as { url: string }).url;
-		expect(url).toContain('includeReferencedEntities=purchaseOrders');
-		expect(url).not.toContain('purchaseOrders.id');
+		expect(url).toContain('includeReferencedEntities=purchaseOrders.id');
 		expect(url).toContain('purchaseOrder%3Aid');
 		expect(url).toContain('purchaseOrders.purchaseOrderNumber-like=P%25');
 		expect(out[0].json.purchaseOrders).toEqual([{ id: 'po1', purchaseOrderNumber: 'P-100' }]);

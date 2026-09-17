@@ -5,7 +5,8 @@ function splitCsv(value: string): string[] {
 	return value.split(',').map((token) => token.trim()).filter(Boolean);
 }
 
-function stripIdSuffix(token: string): string {
+/** Weclapp include paths use `.id` (e.g. purchaseOrders.id); properties list the collection field. */
+function sourceFieldFromIncludePath(token: string): string {
 	if (token.endsWith('.ids')) return token.slice(0, -4);
 	if (token.endsWith('.id')) return token.slice(0, -3);
 	return token;
@@ -15,8 +16,8 @@ export function normalizeReferencedEntityQuery(pairs: QueryParamPairs): QueryPar
 	const includeFields: string[] = [];
 	const withIncludes = pairs.map(([key, value]): [string, string | number] => {
 		if (key !== 'includeReferencedEntities') return [key, value];
-		const tokens = splitCsv(String(value)).map(stripIdSuffix);
-		includeFields.push(...tokens);
+		const tokens = splitCsv(String(value));
+		includeFields.push(...tokens.map(sourceFieldFromIncludePath));
 		return [key, tokens.join(',')];
 	});
 

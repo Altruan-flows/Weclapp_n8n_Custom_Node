@@ -7,12 +7,12 @@ import type { IDataObject } from 'n8n-workflow';
 import type { QueryParamPairs } from '../transport/request';
 
 describe('normalizeReferencedEntityQuery', () => {
-	it('strips .id / .ids from includeReferencedEntities and leaves unitId unchanged', () => {
+	it('keeps includeReferencedEntities paths like purchaseOrders.id and leaves unitId unchanged', () => {
 		const pairs: QueryParamPairs = [
 			['includeReferencedEntities', 'purchaseOrders.id,unitId,salesOrders.ids'],
 		];
 		expect(normalizeReferencedEntityQuery(pairs)).toEqual([
-			['includeReferencedEntities', 'purchaseOrders,unitId,salesOrders'],
+			['includeReferencedEntities', 'purchaseOrders.id,unitId,salesOrders.ids'],
 		]);
 	});
 
@@ -25,7 +25,7 @@ describe('normalizeReferencedEntityQuery', () => {
 			],
 		];
 		const out = normalizeReferencedEntityQuery(pairs);
-		expect(out.find(([k]) => k === 'includeReferencedEntities')?.[1]).toBe('purchaseOrders');
+		expect(out.find(([k]) => k === 'includeReferencedEntities')?.[1]).toBe('purchaseOrders.id');
 		const properties = String(out.find(([k]) => k === 'properties')?.[1]).split(',');
 		expect(properties).toEqual([
 			'id',
@@ -53,20 +53,31 @@ describe('normalizeReferencedEntityQuery', () => {
 		const pairs: QueryParamPairs = [
 			['status-eq', 'INCOMING_SHIPPED'],
 			['purchaseOrders.purchaseOrderNumber-like', 'P%'],
-			['includeReferencedEntities', 'purchaseOrders'],
+			['includeReferencedEntities', 'purchaseOrders.id'],
 		];
 		expect(normalizeReferencedEntityQuery(pairs)).toEqual([
 			['status-eq', 'INCOMING_SHIPPED'],
 			['purchaseOrders.purchaseOrderNumber-like', 'P%'],
-			['includeReferencedEntities', 'purchaseOrders'],
+			['includeReferencedEntities', 'purchaseOrders.id'],
 		]);
 	});
 
 	it('does not add a properties param when the user did not send one', () => {
 		const pairs: QueryParamPairs = [['includeReferencedEntities', 'purchaseOrders.id']];
 		expect(normalizeReferencedEntityQuery(pairs)).toEqual([
-			['includeReferencedEntities', 'purchaseOrders'],
+			['includeReferencedEntities', 'purchaseOrders.id'],
 		]);
+	});
+
+	it('adds the collection field to properties from an include path, not the .id path itself', () => {
+		const pairs: QueryParamPairs = [
+			['includeReferencedEntities', 'purchaseOrders.id'],
+			['properties', 'id,incomingGoodsNumber'],
+		];
+		const properties = String(
+			normalizeReferencedEntityQuery(pairs).find(([k]) => k === 'properties')?.[1],
+		).split(',');
+		expect(properties).toEqual(['id', 'incomingGoodsNumber', 'purchaseOrders']);
 	});
 });
 
